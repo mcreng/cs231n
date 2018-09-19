@@ -78,7 +78,7 @@ def svm_loss_vectorized(W, X, y, reg):
   correct_class_score = scores[np.arange(scores.shape[0]), y]
   margin = scores - correct_class_score[:, np.newaxis] + 1
   margin[margin < 0] = 0
-  loss = np.sum(margin) / scores.shape[0] - 1
+  loss = np.sum(margin) / scores.shape[0] - 1 + reg*np.sum(W*W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################

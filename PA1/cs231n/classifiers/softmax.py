@@ -30,7 +30,21 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  num_classes = W.shape[1]
+  for i in range(num_train):
+    scores = X[i].dot(W)
+    scores -= np.max(scores)
+    exp_sum = np.sum(np.exp(scores))
+    loss += -scores[y[i]] + np.log(exp_sum)
+    for k in range(num_classes):
+      dW[:, k] += (1 / exp_sum) * np.exp(scores[k]) * X[i]
+      if k == y[i]:
+        dW[:, k] -= X[i]
+  loss /= num_train
+  loss += reg*np.sum(W*W)
+  dW /= num_train
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -54,7 +68,31 @@ def softmax_loss_vectorized(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  num_classes = W.shape[1]
+  scores = X.dot(W)
+  scores -= np.max(scores)
+  exp_sum = np.sum(np.exp(scores),axis=1)
+  loss = -np.sum(scores[np.arange(num_train), y]) + np.sum(np.log(exp_sum))
+  dW = (X / exp_sum[:,np.newaxis]).T.dot(np.exp(scores))
+#   dW[:, y] -= X.T -- this does NOT work because repeated column do not get subtracted multiple times as expected
+  ind = np.zeros_like(scores)
+  ind[np.arange(num_train), y] = 1
+  dW -= X.T.dot(ind)
+  
+#   for i in range(num_train):
+#     scores = X[i].dot(W)
+#     scores -= np.max(scores)
+#     exp_sum = np.sum(np.exp(scores))
+#     loss += -scores[y[i]] + np.log(exp_sum)
+#     for k in range(num_classes):
+#       dW[:, k] += (1 / exp_sum) * np.exp(scores[k]) * X[i]
+#       if k == y[i]:
+#         dW[:, k] -= X[i]
+  loss /= num_train
+  loss += reg*np.sum(W*W)
+  dW /= num_train
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
