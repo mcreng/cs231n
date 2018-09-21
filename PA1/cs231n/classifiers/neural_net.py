@@ -76,7 +76,10 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    h1 = X.dot(W1) + b1 # First Layer
+    ReLU = h1
+    ReLU[ReLU < 0] = 0
+    scores = ReLU.dot(W2) + b2 # Second Layer
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -93,7 +96,12 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    scores -= np.max(scores)
+    exp_sum = np.sum(np.exp(scores),axis=1)
+    loss = -np.sum(scores[np.arange(N), y]) + np.sum(np.log(exp_sum))
+
+    loss /= N
+    loss += reg*np.sum(W1*W1) + reg*np.sum(W2*W2)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -105,7 +113,16 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    exp_sum = np.sum(np.exp(scores),axis=1)
+    dscores = 1 / exp_sum[:,np.newaxis] * np.exp(scores)
+    ind = np.zeros_like(scores)
+    ind[np.arange(N), y] = 1
+    dscores -= ind
+    grads['b2'] = dscores.sum(axis=0) / N
+    grads['W2'] = ReLU.T.dot(dscores) / N + 2*reg*W2
+    dReLU = dscores.dot(W2.T) * (h1 > 0)
+    grads['b1'] = dReLU.sum(axis=0) / N
+    grads['W1'] = X.T.dot(dReLU) / N + 2*reg*W1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -149,7 +166,9 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
-      pass
+      ind = np.random.choice(num_train, batch_size)
+      X_batch = X[ind]
+      y_batch = y[ind]
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -164,7 +183,10 @@ class TwoLayerNet(object):
       # using stochastic gradient descent. You'll need to use the gradients   #
       # stored in the grads dictionary defined above.                         #
       #########################################################################
-      pass
+      self.params['W1'] -= learning_rate * grads['W1']
+      self.params['b1'] -= learning_rate * grads['b1']
+      self.params['W2'] -= learning_rate * grads['W2']
+      self.params['b2'] -= learning_rate * grads['b2']
       #########################################################################
       #                             END OF YOUR CODE                          #
       #########################################################################
@@ -209,7 +231,13 @@ class TwoLayerNet(object):
     ###########################################################################
     # TODO: Implement this function; it should be VERY simple!                #
     ###########################################################################
-    pass
+    W1, b1 = self.params['W1'], self.params['b1']
+    W2, b2 = self.params['W2'], self.params['b2']
+    h1 = X.dot(W1) + b1 # First Layer
+    ReLU = h1
+    ReLU[ReLU < 0] = 0
+    scores = ReLU.dot(W2) + b2 # Second Layer
+    y_pred = scores.argmax(axis=1)
     ###########################################################################
     #                              END OF YOUR CODE                           #
     ###########################################################################
