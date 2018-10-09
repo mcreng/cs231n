@@ -178,9 +178,15 @@ class FullyConnectedNet(object):
         ############################################################################
         self.params['W{}'.format(1)] = weight_scale * np.random.randn(input_dim, hidden_dims[0])
         self.params['b{}'.format(1)] = np.zeros(hidden_dims[0])
+        if self.use_batchnorm:
+            self.params['gamma1'] = np.ones(hidden_dims[0])
+            self.params['beta1'] = np.zeros(hidden_dims[0])
         for i in range(2, self.num_layers):
             self.params['W{}'.format(i)] = weight_scale * np.random.randn(hidden_dims[i-2], hidden_dims[i-1])
             self.params['b{}'.format(i)] = np.zeros(hidden_dims[i-1])
+            if self.use_batchnorm:
+                self.params['gamma{}'.format(i)] = np.ones(hidden_dims[i-1])
+                self.params['beta{}'.format(i)] = np.zeros(hidden_dims[i-1])
         self.params['W{}'.format(self.num_layers)] = weight_scale * np.random.randn(hidden_dims[-1], num_classes)
         self.params['b{}'.format(self.num_layers)] = np.zeros(num_classes)
         ############################################################################
@@ -242,15 +248,24 @@ class FullyConnectedNet(object):
         ############################################################################
         interVal = {} # storing intermediate values
         interCache = {} # Storing intermediate caches
-        interVal["affine1"], interCache["affine1"] = affine_forward(X, self.params["W1"], self.params["b1"])
-        interVal["relu1"], interCache["relu1"] = relu_forward(interVal["affine1"])
+        val, _ = interVal["affine1"], interCache["affine1"] = affine_forward(X, self.params["W1"], self.params["b1"])
+        if self.use_batchnorm:
+            val, _ = interVal['bn1'], interCache['bn1'] = \
+                batchnorm_forward(val, self.params['gamma1'], self.params['beta1'], self.bn_params[0])
+        val, _ = interVal["relu1"], interCache["relu1"] = relu_forward(val)
+        if self.use_dropout:
+            val, _ = interVal['dp1'], interCache['dp1'] = dropout_forward(val, self.dropout_param)
         for i in range(2, self.num_layers):
-            interVal["affine{}".format(i)], interCache["affine{}".format(i)] = \
-                affine_forward(interVal["relu{}".format(i-1)], self.params["W{}".format(i)], self.params["b{}".format(i)])
-            interVal["relu{}".format(i)], interCache["relu{}".format(i)] = relu_forward(interVal["affine{}".format(i)])
-        finalVal, finalCache = affine_forward(interVal["relu{}".format(self.num_layers-1)], 
-                                                self.params["W{}".format(self.num_layers)], 
-                                                self.params["b{}".format(self.num_layers)])
+            val, _ = interVal["affine{}".format(i)], interCache["affine{}".format(i)] = \
+                affine_forward(val, self.params["W{}".format(i)], self.params["b{}".format(i)])
+            if self.use_batchnorm:
+                val, _ = interVal['bn{}'.format(i)], interCache['bn{}'.format(i)] = \
+                    batchnorm_forward(val, self.params['gamma{}'.format(i)], self.params['beta{}'.format(i)], self.bn_params[i-1])
+            val, _ = interVal["relu{}".format(i)], interCache["relu{}".format(i)] = relu_forward(val)
+            if self.use_dropout:
+                val, _ = interVal['dp{}'.format(i)], interCache['dp{}'.format(i)] = dropout_forward(val, self.dropout_param)
+        finalVal, finalCache = affine_forward(val, self.params["W{}".format(self.num_layers)], 
+                                                   self.params["b{}".format(self.num_layers)])
         scores = finalVal
         ############################################################################
         #                             END OF YOUR CODE                             #
@@ -278,7 +293,11 @@ class FullyConnectedNet(object):
         grad, grads["W{}".format(self.num_layers)], grads["b{}".format(self.num_layers)] = \
                      affine_backward(grad, finalCache)
         for i in range(self.num_layers-1, 0, -1):
+            if self.use_dropout:
+                grad = dropout_backward(grad, interCache['dp{}'.format(i)])
             grad = relu_backward(grad, interCache["relu{}".format(i)])
+            if self.use_batchnorm:
+                grad, grads['gamma{}'.format(i)], grads['beta{}'.format(i)] = batchnorm_backward(grad, interCache['bn{}'.format(i)])
             grad, grads["W{}".format(i)], grads["b{}".format(i)] = affine_backward(grad, interCache["affine{}".format(i)])
                                                             
         for i in range(1, self.num_layers):
