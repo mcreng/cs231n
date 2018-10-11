@@ -48,9 +48,9 @@ class ThreeLayerConvNet(object):
         # hidden affine layer, and keys 'W3' and 'b3' for the weights and biases   #
         # of the output affine layer.                                              #
         ############################################################################
-        self.params['W1'] = weight_scale * np.random.randn(input_dim[0], num_filters, filter_size, filter_size)
-        self.params['b1'] = np.zeros(filter_size)
-        self.params['W2'] = weight_scale * np.random.randn(filter_size, hidden_dim)
+        self.params['W1'] = weight_scale * np.random.randn(num_filters, input_dim[0], filter_size, filter_size)
+        self.params['b1'] = np.zeros(num_filters)
+        self.params['W2'] = weight_scale * np.random.randn(input_dim[1]*input_dim[2]*num_filters//4, hidden_dim)
         self.params['b2'] = np.zeros(hidden_dim)
         self.params['W3'] = weight_scale * np.random.randn(hidden_dim, num_classes)
         self.params['b3'] = np.zeros(num_classes)
@@ -87,7 +87,7 @@ class ThreeLayerConvNet(object):
         ############################################################################
         conv, conv_cache = conv_relu_pool_forward(X, self.params["W1"], self.params["b1"], conv_param, pool_param)
         affine1, affine1_cache = affine_forward(conv, self.params["W2"], self.params["b2"])
-        relu, relu_cahce = relu_forward(affine1)
+        relu, relu_cache = relu_forward(affine1)
         affine2, affine2_cache = affine_forward(relu, self.params["W3"], self.params["b3"])
         scores = affine2
         ############################################################################
@@ -104,7 +104,7 @@ class ThreeLayerConvNet(object):
         # data loss using softmax, and make sure that grads[k] holds the gradients #
         # for self.params[k]. Don't forget to add L2 regularization!               #
         ############################################################################
-        loss, grad = softmax_loss(X, y)
+        loss, grad = softmax_loss(scores, y)
         grad, grads["W3"], grads["b3"] = affine_backward(grad, affine2_cache)
         grad = relu_backward(grad, relu_cache)
         grad, grads["W2"], grads["b2"] = affine_backward(grad, affine1_cache)

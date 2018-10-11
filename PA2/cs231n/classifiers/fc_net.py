@@ -300,7 +300,7 @@ class FullyConnectedNet(object):
                 grad, grads['gamma{}'.format(i)], grads['beta{}'.format(i)] = batchnorm_backward(grad, interCache['bn{}'.format(i)])
             grad, grads["W{}".format(i)], grads["b{}".format(i)] = affine_backward(grad, interCache["affine{}".format(i)])
                                                             
-        for i in range(1, self.num_layers):
+        for i in range(1, self.num_layers+1):
             loss += 0.5*self.reg*np.sum(self.params["W{}".format(i)]**2)
             grads["W{}".format(i)] += self.reg*self.params["W{}".format(i)]
             
