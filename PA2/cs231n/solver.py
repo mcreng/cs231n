@@ -304,3 +304,76 @@ class Solver(object):
 
         # At the end of training swap the best params into the model
         self.model.params = self.best_params
+
+class MySolver(Solver):
+    def __init__(self, model, data, **kwargs):
+        super().__init__(model, data, **kwargs)
+    
+    def train(self):
+        """
+        Run optimization to train the model.
+        This is a modified version of train() in Solver.
+        """
+        num_train = self.X_train.shape[0]
+        iterations_per_epoch = max(num_train // self.batch_size, 1)
+        num_iterations = self.num_epochs * iterations_per_epoch
+        term_t = num_iterations
+
+        for t in range(num_iterations):
+            self._step()
+
+            # Maybe print training loss
+            if self.verbose and t % self.print_every == 0:
+                print('(Iteration %d / %d) loss: %f' % (
+                       t + 1, num_iterations, self.loss_history[-1]))
+
+            # At the end of every epoch, increment the epoch counter and decay
+            # the learning rate.
+            epoch_end = (t + 1) % iterations_per_epoch == 0
+            if epoch_end:
+                self.epoch += 1
+                for k in self.optim_configs:
+                    self.optim_configs[k]['learning_rate'] *= self.lr_decay
+
+            # Check train and val accuracy on the first iteration, the last
+            # iteration, and at the end of each epoch.
+            first_it = (t == 0)
+            last_it = (t == num_iterations - 1)
+            if first_it or last_it or epoch_end:
+                train_acc = self.check_accuracy(self.X_train, self.y_train,
+                    num_samples=self.num_train_samples)
+                val_acc = self.check_accuracy(self.X_val, self.y_val,
+                    num_samples=self.num_val_samples)
+                self.train_acc_history.append(train_acc)
+                self.val_acc_history.append(val_acc)
+                
+                # Check if it is actually updating:
+                if len(self.val_acc_history) >= 2:
+                    diff = np.abs(self.loss_history[-1] - self.loss_history[-2])
+                    print('Absolute different in accuracy:',diff)
+                    if diff <= 0.1 and term_t == num_iterations:
+                        term_t = t + 5 * iterations_per_epoch # set terminating iter as 5 epoch + present
+                    elif diff >= 0.1:
+                        term_t = num_iterations
+                    print('Will terminate at iter', term_t)
+                
+                self._save_checkpoint()
+
+                if self.verbose:
+                    print('(Epoch %d / %d) train acc: %f; val_acc: %f' % (
+                           self.epoch, self.num_epochs, train_acc, val_acc))
+                    
+                # Keep track of the best model
+                if val_acc > self.best_val_acc:
+                    self.best_val_acc = val_acc
+                    self.best_params = {}
+                    for k, v in self.model.params.items():
+                        self.best_params[k] = v.copy()
+            if t == term_t:
+                # At the end of training swap the best params into the model
+                self.model.params = self.best_params
+                print('Training terminated due to lack of progress in validation accuracy.')
+                break
+
+        # At the end of training swap the best params into the model
+        self.model.params = self.best_params
