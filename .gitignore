@@ -1,0 +1,17 @@
+.ipynb_checkpoints
+.vscode
+.idea
+*.swp
+*.pyc
+.env/*
+*.exe
+collectSubmission.*
+*.gitignore
+frameworkpython
+*.sh
+*.zip
+*.7z
+*.h5
+*.directory
+PA4/dqn
+!/.gitignore
