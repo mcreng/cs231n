@@ -1,5 +1,9 @@
 ## Stanford CS231n (HKUST COMP4901J) Assignment Repo
 
+> Score: Full mark + all bonus
+
+> Grade: A+
+
 ### Introduction
 This repository stores the assignments I have done in HKUST COMP4901J - Deep Learning for Computer Vision, which is a course adapted from [Stanford CS231n - Convolutional Neural Networks for Visual Recoginition](http://cs231n.github.io/).
 
